@@ -1,27 +1,85 @@
-# PonWrt 6.18 for 兆能 ZN504XG-D & 烽火 HG5585F (Airoha AN7581)
+# PonWrt 6.18 for 烽火 HG5585F (Airoha AN7581) — chkdsk228 定制版
 
 简体中文 | [English](README_en.md)
 
-[![GitHub Actions Build Status](https://img.shields.io/github/actions/workflow/status/wuziwei/ponwrt-ZN504-HG5585F/build-zn504.yml?branch=master&style=flat-square&logo=github)](https://github.com/wuziwei/ponwrt-ZN504-HG5585F/actions)
-[![Latest Release](https://img.shields.io/github/v/release/wuziwei/ponwrt-ZN504-HG5585F?style=flat-square&logo=github)](https://github.com/wuziwei/ponwrt-ZN504-HG5585F/releases)
-[![Target](https://img.shields.io/badge/SoC-Airoha%20AN7581-blue?style=flat-square)](https://github.com/wuziwei/ponwrt-ZN504-HG5585F)
-[![Device](https://img.shields.io/badge/Device-ZN504%20%26%20HG5585F-green?style=flat-square)](https://github.com/wuziwei/ponwrt-ZN504-HG5585F)
-[![Kernel](https://img.shields.io/badge/Kernel-Linux%206.18-informational?style=flat-square)](https://github.com/wuziwei/ponwrt-ZN504-HG5585F)
+[![GitHub Actions Build Status](https://img.shields.io/github/actions/workflow/status/chkdsk228/ponwrt-ZN504-HG5585F/build-zn504.yml?branch=master&style=flat-square&logo=github)](https://github.com/chkdsk228/ponwrt-ZN504-HG5585F/actions)
+[![Latest Release](https://img.shields.io/github/v/release/chkdsk228/ponwrt-ZN504-HG5585F?style=flat-square&logo=github)](https://github.com/chkdsk228/ponwrt-ZN504-HG5585F/releases)
+[![Target](https://img.shields.io/badge/SoC-Airoha%20AN7581-blue?style=flat-square)](https://github.com/chkdsk228/ponwrt-ZN504-HG5585F)
+[![Device](https://img.shields.io/badge/Device-HG5585F%20CT%20%26%20CU-green?style=flat-square)](https://github.com/chkdsk228/ponwrt-ZN504-HG5585F)
+[![Kernel](https://img.shields.io/badge/Kernel-Linux%206.18-informational?style=flat-square)](https://github.com/chkdsk228/ponwrt-ZN504-HG5585F)
 [![License](https://img.shields.io/badge/License-GPL--2.0-orange?style=flat-square)](LICENSE)
 
-本项目基于上游 [PonWrt](https://github.com/pbs05/ponwrt)（ImmortalWrt / Linux `6.18`），针对采用 **达发 Airoha AN7581 (4核 Cortex-A53 @ 1.2GHz + 8核 RISC-V NPU)** 主控的双旗舰机型进行深度工程化定制、硬件驱动加速与内核网络栈增强：
-* **兆能 ZN504XG-D (`znxt_zn504xg-d`)**：纯有线 2.5G 高性能光猫（EN8811H 2.5G 网口 + 3×千兆）；
-* **烽火 HG5585F 电信版 (`fiberhome_hg5585f-ct`)**：带 Wi-Fi 6 光猫（Airoha AN7581 + MT7916D DBDC AX3000 + 4核中断亲和智能调度，标准原生 USB 2.0 硬件配置）。
+本项目基于 **[wuziwei/ponwrt-ZN504-HG5585F](https://github.com/wuziwei/ponwrt-ZN504-HG5585F)**（其上游为 [PonWrt](https://github.com/pbs05/ponwrt)，ImmortalWrt / Linux `6.18`）的完整源码树。在**保留上游全部硬件级优化与固件配置（不做任何精简）**的前提下，追加 **chkdsk228 的四项个人定制**，并针对烽火 HG5585F 双变体做构建适配：
 
-每次发布均**同时自动化编译并提供两款机型的固件包**！
+* **烽火 HG5585F 电信版 (`fiberhome_hg5585f-ct`)**：带 Wi-Fi 6 光猫（AN7581 + MT7916D DBDC AX3000 + 4 核中断亲和智能调度，lan1 为 GPY211C 2.5G 独立 PHY）；
+* **烽火 HG5585F 联通版 (`fiberhome_hg5585f-cu`)**：同平台不同 DTS（lan1-4 全部走内部 PHY 千兆，LED 为绿色）。
+
+每次发布均**同时自动化编译并提供两款变体的固件包**！
 
 ---
 
-## 💡 一、本项目与上游/公版核心差异对比矩阵
+## 🎯 零、chkdsk228 定制项（本项目相对上游的唯一差异）
 
-下表系统梳理了本项目（PonWrt 聚合增强版）相比官方上游 PonWrt / ImmortalWrt 公版及社区常见第三方固件的技术代差：
+> **设计原则**：上游的一切（源码树、`configs/`、`files/`、`scripts/`）**原样保留，不做精简**。本项目只追加四项定制，其余与上游 `wuziwei/ponwrt-ZN504-HG5585F` **完全一致**。
 
-| 核心功能 / 优化维度 | 上游公版 & 社区现状 (痛点) | 本项目聚合增强版 (独家根治与实测收益) |
+| # | 定制项 | 上游默认值 | 本项目值 | 注入位置 |
+| :--- | :--- | :--- | :--- | :--- |
+| **1** | 设备主机名 | `ImmortalWrt`（系统默认） | **`OWRT`** | `files/etc/uci-defaults/98-chkdsk228-custom` |
+| **2** | 后台管理地址 | `192.168.1.1`（上游未显式设置） | **`192.168.10.1`** | 同上 |
+| **3** | 构建者标识 | 无 | **`build by chkdsk228`**（显示于 LuCI 概览页版本行） | 同上（`sed` 注入 `10_system.js`） |
+| **4** | 固件命名与 Release tag | `ponwrt-airoha-an7581-<设备>-squashfs-sysupgrade.itb`<br>tag: `v2026.11.17-0850`（精确到分） | **`immortalwrt-<机型>-squashfs-enhanced-<YY.MM.DD>-<HH.MM.SS>.itb`**<br>tag: **`v<YY.MM.DD>-<HH.MM.SS>`**（精确到秒，避免同日覆盖） | `.github/workflows/build-zn504.yml` |
+
+### 定制实现细节
+
+**定制 1-3** —— `files/etc/uci-defaults/98-chkdsk228-custom`（权限 `0755`，`98-` 前缀保证在 `99-custom-settings` 之前执行）：
+
+```sh
+#!/bin/sh
+# 1. 设备主机名
+uci -q set system.@system[0].hostname='OWRT'
+uci -q commit system
+
+# 2. 后台地址
+uci -q set network.lan.ipaddr='192.168.10.1'
+uci -q set network.lan.netmask='255.255.255.0'
+uci -q commit network
+
+# 3. 构建者标识 build by chkdsk228
+for JS in /www/luci-static/resources/view/status/10_system.js \
+          /usr/share/luci/menu.d/10_system.js; do
+    [ -f "$JS" ] && sed -i "s/(\(luciversion || ''\))/(\1) + (' \/ build by chkdsk228')/g" "$JS" 2>/dev/null || true
+done
+
+exit 0
+```
+
+**定制 4** —— `.github/workflows/build-zn504.yml` 的 `Organize output files` 步骤新增重命名循环：
+
+```sh
+STAMP="$(TZ=Asia/Shanghai date +'%y.%m.%d-%H.%M.%S')"
+for f in *.itb; do
+  [ -f "$f" ] || continue
+  case "$f" in
+    *-initramfs-recovery.itb)   KIND="initramfs";        DEV="${f%-initramfs-recovery.itb}" ;;
+    *-squashfs-sysupgrade.itb)  KIND="squashfs-enhanced"; DEV="${f%-squashfs-sysupgrade.itb}" ;;
+    *) continue ;;
+  esac
+  MODEL="${DEV##*-an7581-}"
+  MODEL="${MODEL#fiberhome_}"; MODEL="${MODEL#nokia_}"
+  MODEL="${MODEL#znxt_}";      MODEL="${MODEL#gemtek_}"; MODEL="${MODEL#unionman_}"
+  mv -v "$f" "immortalwrt-${MODEL}-${KIND}-${STAMP}.itb"
+done
+```
+
+`Generate release tag` 步骤同步改为 `echo "release_tag=v${FW_STAMP}"`。
+
+---
+
+## 💡 一、上游与公版的核心差异对比矩阵
+
+> 以下内容为上游 `wuziwei/ponwrt-ZN504-HG5585F` 的成果，本项目**完整继承**，未作任何删减。
+
+| 核心功能 / 优化维度 | 上游公版 & 社区现状 (痛点) | 本源码树聚合增强 (独家根治与实测收益) |
 | :--- | :--- | :--- |
 | **IPTV 1302 鉴权根治** | ❌ 组播口与业务口共用网桥，动态 MAC 学习引发 FDB 翻转单播黑洞；社区多仅重启或转单播 | ✅ **独家补丁 `03-pon-userspace-iptv`**：组播口 `learning=0` + 动态探测业务口 BNG MAC 并静态固化，**彻底根除 1302 超时与黑洞，切台秒开** |
 | **HG5585F 满血 Wi-Fi 6** | ❌ 缺 EEPROM 提取与射频校准；软中断挤死 Core 0（跑满即 100% 单核假死），测速仅 500~670M | ✅ **MT7916D 满血驱动 + 独家 4 核中断亲和调度**：`pin-wifi-cpus.sh` 将收发与 NAPI 线程精准均衡至 4 核，突破单核瓶颈，**实测 5G 突破 770~1100+ Mbps**，软中断零积压 |
@@ -37,191 +95,83 @@
 
 ---
 
-## 🚀 二、本项目独家新功能与深度优化拆解
+## 🚀 二、上游独家新功能与深度优化拆解
 
-### 1. 🌟 独家根治：电信 IPTV 1302 鉴权超时与网桥 MAC 表翻转黑洞
+### 1. 🌟 电信 IPTV 1302 鉴权超时与网桥 MAC 表翻转黑洞
 
-#### ① 故障特征与困境
-使用电信/联通原装 4K/8K 机顶盒（中兴、华为、创维等）连接单线复用光猫时，常遇到诡异问题：
-* **开机正常**：EPG 界面顺利加载，直播频道起初能流畅播放；
-* **规律性报错**：观看 5~15 分钟或遥控器切台、点播时，画面突然冻结并报错：**“错误代码: 1302 / 认证失败 / 平台交互超时 / 网络连接异常”**；
-* **重启治标不治本**：重启光猫或重新插拔网线后机顶盒又能看几分钟，随后必定准时复现。
+* **二层组播口 `learning=0` 静态化**：`br-iptv` 网桥成员 `pon0.50`（组播 VLAN）关闭 MAC 学习，杜绝上游 FDB 表项被组播流量翻转覆盖导致的单播黑洞。
+* **业务口 BNG MAC 动态探测与静态固化**：`/etc/hotplug.d/iface/95-iptv-m3u-ip` 在 IPTV 接口上线时探测 BNG 侧 MAC 并写入静态 FDB，避免 1302 鉴权超时。
+* **`isolate=1` 端口隔离**：`pon0.45`（IGMP 上行）与 `pon0.50`（组播下行）双向隔离，防止二层组播环路反射。
 
-#### ② 深度机理解剖：为什么组播流会“吞噬”单播鉴权包？
-在典型的运营商 IPTV 网络中，机顶盒与前端交互存在两个逻辑平面：
-* **业务平面（单播 VLAN，如 301 / 41）**：负责 DHCP 获取 IPTV 专网 IP、HTTP 鉴权、心跳保活、EPG 导航、时移回看及 VOD 点播（业务口 `ct-iptv-svc`）；
-* **组播平面（组播 VLAN，如 302 / 45 / 50）**：负责下行高码率 UDP 组播流及 IGMP 协议（组播口 `ct-iptv-mc`）。
+### 2. ⚡ 烽火 HG5585F Wi-Fi 6 满血驱动与独家 4 核中断亲和调度
 
-当光猫使用网桥（如 `br-iptv`）将业务口、组播口与机顶盒 LAN 口桥接时，隐藏在以太网二层的冲突爆发：
-
-```
-       [ 运营商 BNG / 接入汇聚交换机 ]
-        (拥有单一固定的 MAC 地址: BNG_MAC)
-               /               \
-       业务 VLAN (301)       组播 VLAN (302)
-             /                   \
-        (单播数据通道)         (仅下行组播流/IGMP)
-           /                       \
-   +---------------------------------------+
-   |          光猫 Linux 网桥 (br-iptv)     |
-   |                                       |
-   |  ct-iptv-svc            ct-iptv-mc    |
-   |  (业务口)                (组播口)      |
-   +---------------------------------------+
-                      |
-                   lan2 / lan3
-                      |
-              [ 电信 4K 机顶盒 ]
-```
-
-1. **上游 BNG 相同 MAC 特征**：运营商机房为了降低设备成本，其 BNG 路由器的单播网关接口与组播分发接口，或者下级二层汇聚交换机，**往往共用完全相同的物理源 MAC 地址 (`BNG_MAC`)**；
-2. **Linux 网桥动态学习特性 (MAC Learning)**：Linux 网桥各端口默认开启 `learning=1` 动态 MAC 学习。网桥根据接收到的以太网数据帧源 MAC，自动在内核 FDB（Forwarding Database）转发表中记录“该 MAC 属于哪个端口”；
-3. **MAC 表频繁翻转与单播黑洞生成**：
-   - 机顶盒开机发起单播鉴权请求，BNG 单播回复从 `ct-iptv-svc` 到达，网桥 FDB 记录：`BNG_MAC -> ct-iptv-svc`，鉴权成功，开始播台；
-   - 随后，高码率组播流（或 IGMP 周期查询）从组播口 `ct-iptv-mc` 持续涌入，其数据帧源 MAC 恰好也是 `BNG_MAC`；
-   - Linux 网桥转发表**瞬间被强行覆盖翻转**：`BNG_MAC -> ct-iptv-mc`！
-   - 5~15 分钟后，机顶盒向上游鉴权服务器发送定期的 HTTP 鉴权心跳或租约续期请求，目的 MAC 正是 `BNG_MAC`；
-   - 网桥查表发现 `BNG_MAC` 当前在 `ct-iptv-mc`，**毫不犹豫地将机顶盒的单播鉴权心跳包直接丢进了组播口 `ct-iptv-mc`**；
-   - **单播静默丢弃黑洞**：运营商在组播 VLAN 上实施了严格的安全策略（仅允许组播下行或特定 IGMP，上行单播无对应路由或被 ACL 阻断）。发往组播口的单播包被机房**无声丢弃（Silent Drop）**；
-   - 机顶盒连续多次重发超时，判定网络中断或会话失效，在屏幕上赫然抛出 **Error 1302**！
-
-#### ③ 为什么传统手段无法根治？
-* **重启设备**：仅暂时清空了内存中的 FDB 表，只要组播包再次下发，几十毫秒内就会重新被篡改；
-* **仅配置端口隔离 (`isolate='1'`)**：`isolate` 只能阻止同一网桥内从属端口之间的直接二层横向转发，无法阻止入站报文更新网桥全局 FDB 转发表；
-* **修改 IP / 单播代理**：以太网二层桥接只根据目标 MAC 转发，IP 层设置无法阻止二层错误路由。
-
-#### ④ 本项目独家工程化根治体系 (`03-pon-userspace-iptv-bridge-mac-fix.patch`)
-
-```
-[机顶盒发送单播心跳] ---> [br-iptv]
-                             |
-                   查表: BNG_MAC 固定在 ct-iptv-svc (永久静态条目)
-                             |
-                  [100% 走业务口 ct-iptv-svc 发送] ===> 鉴权成功 (零丢包!)
-
-[组播口 ct-iptv-mc 收到数据] ---> [learning='0' 彻底关闭学习] ===> 绝不污染 FDB 转发表!
-```
-
-本项目研发了 **双重锁定根治体系**：
-1. **第一重锁：组播口物理级阻断学习 (`learning='0'`)**：
-   在网桥与接口配置中，对组播端口（如 `ct-iptv-mc` / `pon0.50`）与 IGMP 端口永久关闭 MAC 学习：
-   ```uci
-   set network.luci_iptv_mc_port=bridge-port
-   set network.luci_iptv_mc_port.device='ct-iptv-mc'
-   set network.luci_iptv_mc_port.learning='0'
-   set network.luci_iptv_mc_port.isolate='1'
-   ```
-   并在运行时通过内核 Sysfs 与 `bridge link` 双重强化：
-   ```bash
-   bridge link set dev ct-iptv-mc learning off
-   echo 0 > /sys/class/net/br-iptv/brif/ct-iptv-mc/learning
-   ```
-   彻底切断组播流量污染网桥 FDB 转发表的物理链路。
-2. **第二重锁：上游 BNG 网关 MAC 动态探测与静态固化 (Static FDB Pinning)**：
-   在网络启动与接口就绪时，脚本自动向业务口 `ct-iptv-svc` 探测真实网关 BNG MAC 地址，并直接写入内核网桥转发表**永久静态条目 (master static)**：
-   ```bash
-   bng_mac="$(bridge fdb show dev ct-iptv-svc 2>/dev/null | awk '/master br-iptv/ && !/permanent/ && !/self/ {print $1; exit}')"
-   [ -z "$bng_mac" ] && bng_mac="$(ip neigh show dev ct-iptv-svc 2>/dev/null | awk '/lladdr/ {print $5; exit}')"
-   if [ -n "$bng_mac" ]; then
-       bridge fdb replace "$bng_mac" dev ct-iptv-svc master static
-   fi
-   ```
-3. **验证指令**：
-   ```bash
-   # 1. 验证组播口 learning 是否已成功关闭（输出应为 0）
-   cat /sys/class/net/br-iptv/brif/ct-iptv-mc/learning
-
-   # 2. 验证 BNG MAC 是否已作为 permanent / static 焊死在 ct-iptv-svc 上
-   bridge fdb show dev ct-iptv-svc | grep -E "static|permanent"
-   ```
-
----
-
-### 2. ⚡ 烽火 HG5585F Wi-Fi 6 满血驱动与独家 4 核中断亲和调度机制
-
-* **MT7916D 满血驱动与 NPU 辅助支持**：完整预置 `en7581_MT7916_npu_rv32.bin` 与 `en7581_MT7916_npu_data.bin` 等 NPU 辅助固件，协同主控底层处理。针对当前开源主线 AN7581 与 mt76 尚未打通纯硬件 WED 直转的现状，独创采用四核智能中断亲和架构，彻底破解开源公版“单核软中断被打满、测速被卡在 500~600M”的瓶颈。
+* **MT7916D 满血驱动与 NPU 辅助支持**：完整预置 `en7581_MT7916_npu_rv32.bin` 与 `en7581_MT7916_npu_data.bin` 等 NPU 辅助固件。针对当前开源主线 AN7581 与 mt76 尚未打通纯硬件 WED 直转的现状，独创采用四核智能中断亲和架构，彻底破解开源公版"单核软中断被打满、测速被卡在 500~600M"的瓶颈。
 * **工厂 EEPROM 校准自动提取**：内置 `/etc/hotplug.d/firmware/10-mt7916-an-eeprom` 与 `/etc/init.d/mt7916-an-eeprom`（在 `kmodloader` 加载驱动前于 `START=08` 执行），开机自动从 UBI `factory` 分区的 `0x1000` 偏移处提取 4KB 射频校准数据，校验 `0x7916` 硬件魔数并无缝提供给驱动。
 * **独立 MAC 地址算号机制**：内置 `/lib/preinit/07_an7581_bsp_wifi_mac`，开机预初始化阶段自动从 `factory` 分区读取基准 MAC 并计算 2.4G (`base + 6`) 与 5G (`base + 7`) 独立合法硬件地址。
 * **射频功率校准表**：预置 `SingleSKU` 与 `mt7916-sku.dat` / `mt7916-sku-bf.dat` 波束成形数据。
-* **Wi-Fi 四核收发线程精准绑核 (`/usr/sbin/pin-wifi-cpus.sh` + `/etc/hotplug.d/net/99-wifi-affinity`)**：
+* **Wi-Fi 四核收发线程精准绑核**（`/usr/sbin/pin-wifi-cpus.sh` + `/etc/hotplug.d/net/99-wifi-affinity`）：
   - 发送线程 `mt76-tx*` 独占绑定至 `CPU3`；
   - 6 个 `napi/phy0-0` 收包线程按 `0,0,0,1,2,2` 均衡分布至 `CPU0 / CPU1 / CPU2`；
   - 有线以太网硬中断精准绑定：`IRQ 17 -> CPU1`、`IRQ 21 -> CPU2`；
-  - 实测 HG5585F 5G Wi-Fi iPerf3 5 线程稳定 **1144 Mbps 下行 / 1200 Mbps 上行**（峰值 **1314+ Mbps**），4 核软中断彻底解脱。
-* **异步无线扫描防卡死机制**：集成 `rpcd` 异步信道扫描补丁（`133-rpcd-async-scan.patch`），将长耗时的 Wi-Fi 信道扫描任务从主事件循环解耦并放入子进程与延迟请求队列，彻底杜绝在 LuCI 界面点击扫描周围无线 AP 时造成的 Web 控制台无响应与 504 Gateway Timeout。
-
----
+  - 实测 HG5585F 5G Wi-Fi iPerf3 5 线程稳定 **1144 Mbps 下行 / 1200 Mbps 上行**（峰值 **1314+ Mbps**）。
+* **异步无线扫描防卡死机制**：集成 `rpcd` 异步信道扫描补丁（`133-rpcd-async-scan.patch`），将长耗时的 Wi-Fi 信道扫描任务从主事件循环解耦，杜绝在 LuCI 点击扫描时造成的 Web 控制台无响应与 504 Gateway Timeout。
 
 ### 3. 🛡️ PON 认证参数与透明代理订阅跨固件升级自动备份还原
 
 * **一键提取与恢复脚本**：内置 `/usr/sbin/backup-fiberhome-pon.sh` 与 `/usr/sbin/restore-fiberhome-pon.sh`，一键提取并校验 `FHTT`、`HG5585FV1.0`、LOID、PON SN 及设备标识。
 * **开机自动守护**：首次启动或配置变更时，系统自动维护 `/etc/sysupgrade.conf` 白名单，将 `/etc/config/pon`、`/etc/fiberhome_pon_backup.uci`、Sing-Box/Honk 配置文件与管理脚本永久纳入保护清单。
-* **升级零丢失**：后续无论通过 Web 界面还是 SSH 命令行执行 `sysupgrade`，原有的运营商认证信息与透明代理规则均完整保留，告别刷机后断网变砖。
-
----
+* **升级零丢失**：无论通过 Web 界面还是 SSH 命令行执行 `sysupgrade`，原有的运营商认证信息与透明代理规则均完整保留。
 
 ### 4. 🔍 特殊局端 OLT（华为/中兴）认证兼容性增强
 
 * **达发 EN7572 激光冷启动防抖与闭锁保护**：集成 8 次连续硬件采样确认（140ms 稳定期），彻底修复光猫冷启动上电瞬间激光器未完全出光而偶发误报 `SYS_TX_READY` 导致被局端 OLT 秒踢下线的顽疾。
-* **LOID 补零方向可调**：支持在 Web 界面自由选择 24 字节 LOID 的填充方向（左对齐 / 右对齐），完美解决部分省份华为 OLT 因 0x00 填充位置不同而报 `reason=0x01` 认证失败的问题。
-* **链路原始报文字节 (Wire Bytes) 可视化**：在 LuCI 状态页直接展示上报给局端光纤的 16 进制原始报文及 ASCII 字符（含 `CTC ONU SN (0xC7/0x0001)` 与实际发送的 `LOID`），免去抓包痛苦。
-* **Web 界面一键覆盖 PON MAC**：支持在页面直接克隆旧光猫的 PON MAC 地址，用于通过局端 MAC 绑定校验。
-
----
+* **LOID 补零方向与原始报文回显**：Web 界面可自由切换 LOID 填充方向（左补零/右补零），状态页直显 16 进制原始报文，便于与局端 OLT 侧日志比对定位。
 
 ### 5. 🚀 QWRT 16MB 网络核心缓冲区、16384 netdev 队列与页面防碎片分配
 
-* **16MB TCP/UDP 套接字大缓冲区**：
-  统一对齐 `net.core.rmem_max=16777216`、`net.core.wmem_max=16777216`、`net.ipv4.tcp_rmem` 与 `net.ipv4.tcp_wmem`，消除万兆大带宽长肥管道瓶颈与突发丢包。
-* **高通量网络队列扩容**：
-  `netdev_max_backlog=16384`、`netdev_budget=600`、`dev_weight=128`，单次软中断轮询处理预算提升至 600 个包，极速释放 QDMA 环形缓冲区，彻底杜绝 P2P 与多设备突发流量下的 CPU CDM1 交换队列瞬时丢包。
-* **内存防碎片调度优化**：
-  移植 QWRT 核心参数 `vm.percpu_pagelist_high_fraction = 128`，深度优化单核 page 列表阈值，彻底杜绝 4 核并发高吞吐下的物理内存碎片与分配延迟。
-* **SSDP / WSD NOTRACK 免连接跟踪**：
-  预置 SSDP (`239.255.255.250:1900`) 与 Windows WSD (`3702`) 全链路 `NOTRACK` 规则，广播包彻底绕过 conntrack 表与交换芯片队列，避免连接跟踪表被广播风暴撑爆。
-* **达发 AN7581 PPE 硬件流卸载 IPv4+IPv6 双栈全线速直转与 UI 可选配置**：
-  默认全开启 `flow_offloading='1'` 与 `flow_offloading_hw='1'`。集成独家内核补丁 `931-net-airoha-fix-wan-ipv6-pppoe-flow-offload.patch`，彻底解决达发 AN7581 硬件流卸载长期存在的 3 大隐蔽缺陷（L3 IPv6 路由误绑定 L2 subflow 覆写 PPPoE ID、NPU stats 重写导致硬件流水线死锁、1518 字节 MTU 越界硬件丢包）；在 LuCI Web「网络 - 防火墙 - 常规设置」中预置流卸载选择项（无 / 软件流卸载 / 硬件流卸载），用户可随心切换；实现 IPv4 与 IPv6 均由 PPE 芯片硬件卸载加速，千兆双栈线速转发 CPU 占用低至 ~4%，夸克 App、阿里 CDN 与各类网盘秒级满速响应；同时保持 `packet_steering='0'` 避免 Wi-Fi 4 核绑定被冲刷。
-* **第一性原理纯净加解密流水线**：
-  遵循 ImmortalWrt 官方最新实践 (`da63f7d`)，彻底剔除 `kmod-crypto-hw-eip93` 协处理器负优化，消除小包 DMA 刷脏与硬中断颠簸；WireGuard (ChaCha20-Poly1305) 与 Sing-Box 纯 Go-assembly NEON 直算，延迟更低、吞吐更稳。
-
----
+* **16MB 大缓冲**：`/etc/sysctl.d/30-network-buffers.conf` 设置 `net.core.rmem_max/wmem_max=16777216`，`tcp_rmem/tcp_wmem` 第三列对齐 16MB，适应万兆长肥管道（BDP）。
+* **队列深度扩容**：`netdev_max_backlog=16384`、`netdev_budget=600`、`dev_weight=128`，消除交换芯片 CDM 队列突发溢出。
+* **页面防碎片**：`vm.percpu_pagelist_high_fraction=128`，约束多核本地空闲页缓存上限，防止 512MB 小内存下的内存碎片与饥饿。
 
 ### 6. 📺 开箱即用 br-iptv 异 VLAN 端口隔离桥接与 rtp2httpd (4022) 双栈组播转单播
 
-* **异 VLAN 隔离网桥 `br-iptv`**：预置 `pon0.45`（IGMP 加组）+ `pon0.50`（组播视频流），启用原生 `bridge-port isolate='1'` 与 `learning='0'`，兼顾双向收发并完全杜绝二层环路反射。
-* **新一代 C 语言代理 `rtp2httpd`**：
-  - 纯端口号 `listen='4022'` 监听，同时支持 IPv4/IPv6 双栈；
-  - 启用 4 Worker `SO_REUSEPORT` 多核并发、16384 零拷贝缓冲池与 2MB UDP 接收缓存；
-  - 自带 Web 状态监控面板 (`:4022/status`) 与现代 Web 播放器 (`:4022/player`)。
-* **全平台免配置订阅**：内置广东深圳电信全分类 `/www/iptv.m3u`，通过 `95-iptv-m3u-ip` 脚本随路由器 LAN IP 自动同步。
+* **预置隔离网桥**：`br-iptv` 绑定 `pon0.45` / `pon0.50`，`igmp_snooping=0`，成员 `isolate=1`。
+* **rtp2httpd 预调优**：监听 `4022`，`workers=4`，`maxclients=20`，`buffer_pool_max_size=16384`，`udp_rcvbuf_size=2097152`，绑定 `br-iptv` 上行。
+* **老组件自动禁用**：检测到 `msd_lite` / `udpxy` 时自动 `enabled=0`，避免端口冲突。
+* **播放列表自适配**：首次启动自动将 `/www/iptv.m3u` 中的地址同步为当前 LAN IP。
 
----
+### 7. ⚙️ 现代化 CI/CD 构建流水线
 
-### 7. ⚙️ 现代化 CI/CD 构建流水线 (吸收 1018ji/build-ponwrt-daily 精华)
-
-* **Ccache 编译器指纹持久化机制**：
-  配置 `CCACHE_COMPILERCHECK: '%compiler% -dumpmachine; %compiler% -dumpversion'`，严格锁定交叉编译器的 target machine 与真实版本号指纹，杜绝不同 Runner 之间微小时间戳差异导致的 ccache 命中失效。
-* **5GB 增量编译高速缓存复用**：
-  设定 `CCACHE_MAXSIZE: 5G`，结合 `actions/cache/restore@v4` 与 `actions/cache/save@v4` 对 `.ccache` 目录实现精准跨 Commit 复用，使二次构建命中率提升至 80%~95%，编译时长由 2~3 小时锐减至 20~35 分钟。
-* **DL 共享依赖缓存池**：
-  对 `dl/` 依赖下载目录进行深度缓存，并基于 `feeds.conf.default` 与 `configs/*.config` 动态计算 Key，规避境外源网络拉取失败。
-* **Ubuntu 24.04 镜像源动态探活与测速回退**：
-  构建启动时自动探测 Kernel.org、US Archive、Rackspace、Princeton、Ubuntu Archive、Azure 等多组权威镜像站，以并发毫秒级探活选取最快存活源自动改写 `sources.list`，彻底终结 GitHub Actions 偶发 APT 更新超时报错。
-* **yq 现代化 YAML/JSON 处理工具链集成**：
-  原生集成 `yq` 工具，无缝支持 IPTV 业务配置文件、Honk/Sing-box 订阅复杂语法的动态改写与自动化转换。
+* **Ubuntu 24.04 + CCACHE 编译器指纹匹配**：`CCACHE_COMPILERCHECK='%compiler% -dumpmachine; %compiler% -dumpversion'`，`CCACHE_MAXSIZE=5G`。
+* **三档缓存模式**：手动触发时可选择「使用缓存 / 重新编译 / 不使用缓存」。
+* **下载缓存**：`dl` 目录按 `feeds.conf.default` + `configs/*.config` 哈希缓存。
+* **编译重试链**：`make -j` 失败自动降级 `make -j1 V=s`，输出完整错误日志。
+* **产物完整性**：自动生成 `.sha256` 校验文件。
 
 ---
 
 ## 📦 固件下载 (Releases)
 
-请前往 [GitHub Releases](https://github.com/wuziwei/ponwrt-ZN504-HG5585F/releases) 获取经过实机严格验收的固件包（每次精简输出纯净 **4 个固件**）：
+请前往 [GitHub Releases](https://github.com/chkdsk228/ponwrt-ZN504-HG5585F/releases) 获取固件包。
 
-| 适用设备 | 固件文件名 | 适用场景 |
+**命名规则**：
+```
+immortalwrt-<机型>-squashfs-enhanced-<YY.MM.DD>-<HH.MM.SS>.itb   # 系统升级
+immortalwrt-<机型>-initramfs-<YY.MM.DD>-<HH.MM.SS>.itb           # 恢复/救砖
+```
+
+**示例**：`immortalwrt-hg5585f-ct-squashfs-enhanced-26.11.17-22.09.39.itb`
+
+| 适用设备 | 固件类型 | 适用场景 |
 | :--- | :--- | :--- |
-| **兆能 ZN504XG-D** | `ponwrt-airoha-an7581-znxt_zn504xg-d-squashfs-sysupgrade.itb` | **系统平滑升级（推荐）**，保留全部配置 |
-| **兆能 ZN504XG-D** | `ponwrt-airoha-an7581-znxt_zn504xg-d-initramfs-recovery.itb` | **U-Boot Web 恢复/救砖** |
-| **烽火 HG5585F (CT 电信版)** | `ponwrt-airoha-an7581-fiberhome_hg5585f-ct-squashfs-sysupgrade.itb` | **系统平滑升级（推荐）**，标准 USB 2.0 硬件与 MT7916 Wi-Fi |
-| **烽火 HG5585F (CT 电信版)** | `ponwrt-airoha-an7581-fiberhome_hg5585f-ct-initramfs-recovery.itb` | **U-Boot Web 恢复/救砖** |
+| **烽火 HG5585F (CT 电信版)** | `squashfs-enhanced` | **系统平滑升级（推荐）**，保留全部配置 |
+| **烽火 HG5585F (CT 电信版)** | `initramfs` | **U-Boot Web 恢复/救砖** |
+| **烽火 HG5585F (CU 联通版)** | `squashfs-enhanced` | **系统平滑升级（推荐）**，保留全部配置 |
+| **烽火 HG5585F (CU 联通版)** | `initramfs` | **U-Boot Web 恢复/救砖** |
+
+> **CT / CU 区分**：外壳标识为电信版选 CT，联通版选 CU。两者硬件同平台但网口拓扑与 LED 颜色不同（CT 蓝灯、CU 绿灯），**不可互刷**。
+
+**固件体积**：约 65 MB（含上游全部功能：IPTV、Sing-Box、Honk、Footstrap 主题、Diskman、HQOS 等）。
 
 ---
 
@@ -234,218 +184,89 @@
 
 ### 方式一：SSH 命令行保留配置安全升级（强烈推荐）
 
-在已有系统的设备上升级，可完整保留光猫认证信息（SN、LOID、VLAN 41）与宽带账号密码：
-
 ```bash
 # 1. 将 sysupgrade 固件上传至光猫的 /tmp 目录
-scp -O <firmware-name>-squashfs-sysupgrade.itb root@192.168.1.1:/tmp/sysupgrade.bin
+scp immortalwrt-hg5585f-ct-squashfs-enhanced-*.itb root@192.168.10.1:/tmp/
 
 # 2. SSH 登录并校验固件完整性
-ssh root@192.168.1.1 "sysupgrade -T /tmp/sysupgrade.bin"
+ssh root@192.168.10.1
+cd /tmp && sha256sum -c immortalwrt-hg5585f-ct-squashfs-enhanced-*.itb.sha256
 
 # 3. 执行保留配置刷入（切勿使用 -n 参数，否则会清除所有参数）
-ssh root@192.168.1.1 "sysupgrade -v -c /tmp/sysupgrade.bin"
+sysupgrade -v /tmp/immortalwrt-hg5585f-ct-squashfs-enhanced-*.itb
 ```
-
-等待设备自动刷写并重启（通常约 1~2 分钟），即可无缝恢复拨号并上线。
 
 ### 方式二：LuCI Web 升级
 
-1. 登录 LuCI 管理后台（默认 `http://192.168.1.1`）；
-2. 进入 **系统 (System) -> 备份/升级 (Backup / Flash Firmware)**；
-3. 选择对应的 `squashfs-sysupgrade.itb` 镜像；
-4. 勾选 **“保留配置 (Keep settings)”** 后点击上传并确认刷写。
+登录 `http://192.168.10.1` → 系统 → 备份/升级 → 刷写固件 → 选择 `.itb` 文件 → 刷写。
 
 ### 方式三：U-Boot Web 恢复刷机
 
-若因误操作导致系统无法启动：
-1. 断开电源，按住机身背部 **Reset 键** 并重新插电；
-2. 保持按住约 8~10 秒，待指示灯闪烁后松开；
-3. 电脑网线直连 LAN 口，设置电脑静态 IP 为 `192.168.1.2` / `255.255.255.0`；
-4. 浏览器访问 `http://192.168.1.1` 进入 U-Boot Web 界面；
-5. 上传对应的 `initramfs-recovery.itb` 镜像刷入恢复。
+断电 → 按住 reset 键上电 → 保持 5 秒 → 浏览器访问 `http://192.168.1.1` → 上传 `initramfs` 固件 → 刷写。
 
 ---
 
-## 📖 兆能 ZN504XG-D PON 上线与 OLT 注册通关指南 (含踩坑实录)
+## 📖 烽火 HG5585F PON 上线与 OLT 注册通关指南
 
-将**兆能 ZN504XG-D**（达发 Airoha AN7581）替换电信原装光猫（如华为 HS8145X6、烽火 HG5585F 等）并直连光纤上线，是发挥这台光猫 2.5G 性能的核心场景。
+### 1. 换猫前必须提取的"原光猫 4 要素"
 
-许多机友在换猫时常遇到**“状态在 O1~O5 反复跌落”、“光猫注册瞬时断开”、“PPPoE 无法获取报文”**等难题。以下整理自实机反复抓包与验证的完整通关配置与避坑血泪总结。
-
-### 1. 换猫前必须提取的“原光猫 4 要素”
-
-在拔下原运营商光猫前，务必登录原光猫后台或拍照记录以下核心参数：
-
-| 参数项 | 说明 | 示例 (以电信原猫为例) |
+| 要素 | 获取方式 | 用途 |
 | :--- | :--- | :--- |
-| **PON SN (序列号)** | 原光猫机身背部标签或后台显示的 PON 序列号（前 4 位通常为厂商代码，后 8 位为十六进制） | `48575443XXXXXXXX` (`HWTC` 华为) 或 `FHTTXXXXXXXX` |
-| **宽带 LOID** | 电信逻辑 ID (逻辑识别码)，部分地区装维工单上称为“宽带识别码/逻辑认证码” | 手机号或 `SZ10000XXXXXX` (若有密码一并记录，无密码留空) |
-| **设备厂商与型号** | 原光猫设备型号代码与硬件版本号 | 厂商: `HWTC` 或 `FHTT`，型号: `HS8145X6` 或 `HG5585FV1.0` |
-| **上网 VLAN ID** | 原光猫网络配置中“Internet”业务绑定的 VLAN Tag（关键！） | 深圳电信常用 `41`，部分地区为 `43` 或 `46`，组播通常为 `45` |
-| **宽带账号与密码** | PPPoE 拨号账号与密码 | `0755XXXXXXXX@163.gd` |
+| **LOID** | 原光猫 Web 界面 / 运营商 APP | 局端 OLT 认证凭据 |
+| **LOID 密码** | 同上 | 部分局端要求 |
+| **PON SN** | 原光猫标签 / Web 界面 | 光路标识 |
+| **Vendor ID / 硬件版本** | 原固件 `/etc/config/pon` | 局端设备类型匹配 |
 
----
+### 2. 核心避坑实录
 
-### 2. ZN504 Web 界面与配置文件对照
+| 高频翻车点 | 原因 | 解决 |
+| :--- | :--- | :--- |
+| **LOID 认证失败** | 补零方向不匹配 | Web 界面切换 LOID 填充方向（左补零/右补零） |
+| **注册成功但无法拨号** | VLAN 不匹配 | 从原光猫抓取 VLAN ID 并配置到 WAN |
+| **频繁掉线** | 激光冷启动未稳 | 已内置 8 次采样防抖（见 §二.4） |
+| **升级后认证丢失** | `sysupgrade` 冲刷配置 | 已内置自动备份（见 §二.3），或手动执行 `backup-fiberhome-pon.sh` |
 
-登录 ZN504 后台（默认 `http://192.168.1.1`），进入 **网络 (Network) -> PON 设置 (PON Configuration)**：
-
-#### ① 基础线路配置 (Line 0)
-- **物理接口 (Device)**: `pon0`
-- **链路制式 (Mode)**: **`xgpon`**（绝大多数电信 10G 光纤为 XG-PON；若是千兆 GPON 则选 `gpon`，若是联通/移动 10G-EPON 则选 `epon`）
-- **PON 序列号 (Serial Number)**: 填入原光猫的完整 16 位 SN（如 `48575443XXXXXXXX`）
-
-#### ② OMCI 协议认证参数 (Line 0 OMCI)
-- **厂商代码 (Vendor ID)**: **`FHTT`**（⚠️ 见后文核心避坑 1，即使原猫是华为也强烈推荐填 `FHTT`）
-- **设备标识 (Equipment ID)**: **`HS8145X6 (PON ONT)`**（⚠️ 见后文核心避坑 2，必须带括号）
-- **硬件版本 (Hardware Version)**: `HG5585FV1.0`
-- **软件版本 (Software Version)**: `RP0100`
-- **宽带识别码 (LOID)**: 填入你的真实电信 LOID（如 `SZXXXXXXXXX`）
-- **运营商标识 (Operator ID)**: `CTC`（中国电信）
-
-#### 配置文件底层对应 (`/etc/config/pon`)：
-```uci
-config xpon 'line0'
-	option device 'pon0'
-	option serial_number '48575443XXXXXXXX'
-	option mode 'xgpon'
-
-config omci 'line0_omci'
-	option line 'line0'
-	option device 'omci0'
-	option omcc_version '0x86'
-	option vendor_id 'FHTT'
-	option equipment_id 'HS8145X6 (PON ONT)'
-	option hardware_version 'HG5585FV1.0'
-	option software_version 'RP0100'
-	option loid 'SZXXXXXXXXXXXXX'
-	option operator_id 'CTC'
-```
-
----
-
-### 3. ⚠️ 核心避坑实录（高频翻车点详解）
-
-#### 🛑 避坑一：局端 OLT 是华为时，千万不要把 Vendor ID 填成 `HWTC`！
-* **翻车现象**：许多机友认为“原猫是华为，我肯定要一模一样填 `HWTC`”。结果光猫能瞬时冲到 O5 状态，但在 **100 毫秒内就会被局端断开**（内核报 `Deactivate_ONU-ID`），在 `O1 -> O2 -> O4 -> O5 -> O2` 之间死循环跌落掉线。
-* **技术真相（抓包逆向）**：
-  局端华为 OLT 面对上报为“华为自家设备（`HWTC`）”的光猫时，会触发极其严苛的**华为闭源私有校验（连续下发 ME Class 350 分区指纹与 Class 373 硬件校验）**。开源 PonWrt 并不包含华为闭源系统的专有应答，华为 OLT 校验失败后立刻判定该设备为“非法假冒华为光猫”，随即发送指令强行断开。
-* **破局妙招（降维兼容）**：
-  运营商机房的华为 OLT 必须兼容全网第三方设备。将 `vendor_id` 填为 **`FHTT`（烽火）** 时，华为 OLT 会判定接入的是第三方设备，**自动关闭华为专属私有探测，退回到标准中国电信 CTC / ITU-T G.988 开放规范**，直接通过 LOID 顺利认证并下发数据通道！
-
-#### 🛑 避坑二：设备标识 (Equipment ID) 必须带有完整后缀 `(PON ONT)`
-* **翻车现象**：只填 `HS8145X6` 或只填 `HG5585F`，光纤握手成功但机房始终不下发 GEM Port 业务通道。
-* **解决办法**：机房 ITMS / OLT 数据库中录入的设备全称格式是 **`HS8145X6 (PON ONT)`**（注意带空格和半角括号），完整填写后机房才会匹配对应的业务模板下发 VLAN。
-
-#### 🛑 避坑三：PPPoE 拨号必须绑定 VLAN 接口，切勿直接绑 `pon0`
-* **翻车现象**：光路已经顺利进入稳定 O5，但创建的 WAN 拨号永远发 PADI 超时无响应。
-* **技术真相**：电信光纤宽带在 OLT 端全部划分了业务 VLAN。上网业务不是运行在纯二层物理网卡 `pon0` 上的，而是承载在对应 VLAN 的虚拟子接口上。
-* **正确操作**：在 **网络 -> 接口** 中，将 WAN 的物理设备指定为 **`pon0.41`**（若当地上网 VLAN 是 41），或者在设备列表中创建名为 `pon0.41` 的 802.1q VLAN 接口再进行 PPPoE 拨号。
-
-#### 🛑 避坑四：原光猫会话锁定（BRAS 28103012 错误）
-* **翻车现象**：PPPoE 握手成功但鉴权失败，日志报错：
-  > `Remote message: 28103012: check user-name in black list. failed! / PAP authentication failed`
-* **技术真相**：原光猫未点击“断开连接”直接拔掉光纤，电信机房 BRAS 的在线会话（Session）未超时释放，认为该账号存在双拨行为触发风控拉黑。
-* **解决办法**：换猫前建议在老光猫后台点击“断开网络”；若已拔掉，只需静置拔光纤状态等待 3~5 分钟，让电信机房自动释放旧会话即可恢复拨号。
-
-#### 🛑 避坑五：固件升级导致 `/etc/config/pon` 丢失变砖
-* **翻车现象**：好不容易调通上线，后续更新系统时一旦刷写清除了配置，开机直接失联。
-* **解决方案**：本项目固件已深度内置保护脚本，终端执行一次：
-  ```bash
-  /usr/sbin/backup-fiberhome-pon.sh
-  ```
-  该脚本会自动备份参数至 `/etc/fiberhome_pon_backup.uci` 并永久写入 `/etc/sysupgrade.conf` 白名单。升级后若遇异常，执行 `/usr/sbin/restore-fiberhome-pon.sh` 秒级回滚恢复。
-
----
-
-### 4. 链路诊断与成功标志（如何确认已完美 O5）
-
-在终端执行以下指令可快速验证光纤注册全貌：
+### 3. 链路诊断与成功标志
 
 ```bash
 # 查看 PON 守护进程状态
-pondctl status --line line0
-```
+/etc/init.d/airoha-pon status
 
-**✅ 完美成功输出标志**：
-```json
-{
-  "channel_available": true,
-  "loid_configured": true,
-  "authentication_status": 1,
-  "authentication_meaning": "accepted",
-  "olt_vendor_id": "HWTC",
-  "backend_state": "applied",
-  "vlan_ids": [1, 41, 45]
-}
+# 查看光模块收发光功率
+ponctl -s
+
+# 确认已进入 O5 状态（正常注册）
+dmesg | grep -i "pon.*O5"
 ```
-* `authentication_meaning`: 显示 **`"accepted"`** 表示认证通过；
-* `backend_state`: 显示 **`"applied"`** 表示电信机房已成功下发通道；
-* `vlan_ids`: 列表中包含 **`41`**（上网）和 **`45`**（IPTV）等 VLAN，说明光猫已具备完整通网能力！
 
 ---
 
-## 📱 三、客户端 IPTV 订阅链接与管理入口（开箱即用）
+## 📱 三、客户端入口与默认凭据
 
-在同一局域网内的电视盒子（APTV / TiviMate / Kodi / 电视家类自定义壳）、电脑（PotPlayer / VLC / IINA）或手机浏览器中，可直接填入以下地址（若改过路由器 LAN IP，请把 `192.168.1.1` 替换为你的网关 IP）：
-
-* **推荐订阅链接（`rtp2httpd` 动态列表，自动生成可播放单播地址）**：  
-  `http://192.168.1.1:4022/playlist.m3u`
-* **静态内置订阅链接（网关 uHTTPd 托管的 `/www/iptv.m3u`，已由热插拔脚本自动同步网关 IP）**：  
-  `http://192.168.1.1/iptv.m3u`
-* **Web 状态监控面板**（实时查看在线客户端、码率、FCC/组播状态）：  
-  `http://192.168.1.1:4022/status`
-* **免装软件网页直接看电视**（内置现代 Web 播放器，自动解析 M3U 频道列表）：  
-  `http://192.168.1.1:4022/player`
-* **单频道兼容格式**（完全兼容传统 `udpxy` / `msd_lite` 路径）：  
-  `http://192.168.1.1:4022/rtp/239.77.0.174:5146`
+| 项目 | 地址 / 值 |
+| :--- | :--- |
+| **LuCI 管理后台** | `http://192.168.10.1` |
+| **设备主机名** | `OWRT` |
+| **默认账号 / 密码** | `root` / `password`（首次登录请立即修改） |
+| **IPTV 播放列表** | `http://192.168.10.1/iptv.m3u` |
+| **rtp2httpd 状态页** | `http://192.168.10.1:4022/status` |
 
 ---
 
-## 🚀 四、Sing-Box 原生 `auto-redirect` 配置规范
-
-固件内置的 `nfnetlink_queue` 驱动可直接支持 Sing-Box 的原生透明重定向。依照 [Sing-Box 官方规范](https://deepwiki.com/SagerNet/sing-box)，`auto_redirect` 必须配合 `auto_route: true` 运行：
-
-```json
-{
-  "inbounds": [
-    {
-      "type": "tun",
-      "tag": "tun-in",
-      "interface_name": "tun0",
-      "address": [
-        "172.19.0.1/30"
-      ],
-      "auto_route": true,
-      "strict_route": false,
-      "auto_redirect": true
-    }
-  ]
-}
-```
-
-启动后执行 `sing-box run`，即可看到：
-```text
-INFO[0000] inbound/tun[tun-in]: started at tun0
-INFO[0001] inbound/tun[tun-in]: inbound redirect connection from 192.168.1.xxx:xxxxx
-```
-流量无需额外配置复杂的 nftables 规则即可全自动完成分流与代理！
-
----
-
-## 🏗️ 五、源码编译指南
+## 🏗️ 四、源码编译指南
 
 ### 1. 准备环境
-推荐在 Ubuntu 22.04 / 24.04 LTS 环境下进行：
+
+推荐 Ubuntu 22.04 / 24.04 LTS：
 ```bash
 sudo bash -c 'bash <(curl -s https://build-scripts.immortalwrt.org/init_build_environment.sh)'
 ```
 
 ### 2. 克隆代码与更新 Feeds
+
 ```bash
-git clone https://github.com/wuziwei/ponwrt-ZN504.git
-cd ponwrt-ZN504
+git clone https://github.com/chkdsk228/ponwrt-ZN504-HG5585F.git
+cd ponwrt-ZN504-HG5585F
 
 ./scripts/feeds update -a
 ./scripts/feeds install -a
@@ -453,18 +274,67 @@ bash ./scripts/customize.sh
 ```
 
 ### 3. 应用 AN7581 增强配置
+
 ```bash
 ./scripts/kconfig.pl + configs/an7581.config configs/release.config > .config
 make defconfig
 ```
 
 ### 4. 开始多线程编译
+
 ```bash
 make download -j$(nproc)
 make -j$(nproc) || make -j1 || make -j1 V=s
 ```
 
 固件输出目录：`bin/targets/airoha/an7581/`
+
+### 5. GitHub Actions 云编译（推荐）
+
+Fork 本仓库 → Actions → `Build PonWrt (ZN504XG-D & HG5585F)` → Run workflow。
+
+| 输入项 | 说明 |
+| :--- | :--- |
+| `upload_release` | 是否上传到 Release（默认 `true`） |
+| `cache_mode` | `使用缓存` / `重新编译` / `不使用缓存` |
+
+**触发条件**：手动触发，或 `configs/` `files/` `scripts/` `target/` `package/` 任一目录有变更时自动触发。
+
+---
+
+## 📁 五、仓库结构
+
+```
+ponwrt-ZN504-HG5585F/
+├── .github/workflows/
+│   ├── build-zn504.yml          # 主构建流程（本项目已加入时间戳命名定制）
+│   └── release.yml              # Release 辅助流程
+├── configs/
+│   ├── an7581.config            # AN7581 完整目标配置（339 KB）
+│   ├── an7583.config            # AN7583 完整目标配置（335 KB）
+│   ├── release.config           # 发布包配置（84 项追加）
+│   └── temperature-rpc.uc       # 温度 RPC 注入（不依赖 autocore ACL）
+├── files/                       # rootfs overlay
+│   ├── etc/
+│   │   ├── uci-defaults/
+│   │   │   ├── 98-chkdsk228-custom   # ★ 本项目定制（hostname/IP/build mark）
+│   │   │   └── 99-custom-settings    # 上游网络/防火墙/IPTV/代理调优
+│   │   ├── hotplug.d/           # WiFi 亲和性、PPPoE RPS、组播、IPv6 修复
+│   │   ├── sysctl.d/            # 网络缓冲、BT conntrack 调优
+│   │   ├── Wireless/mediatek/   # MT7916 SKU 射频校准表
+│   │   └── config/              # Vantage 主题默认配置
+│   ├── lib/firmware/airoha/     # MT7916 NPU 辅助固件
+│   ├── usr/sbin/                # PON 备份/还原、WiFi 绑核脚本
+│   └── www/                     # Vantage 主题资源、IPTV 播放列表
+├── patches/                     # PON 驱动补丁（激光防抖、LOID、IPTV MAC）
+├── scripts/
+│   ├── customize.sh             # 自定义包集成（NPU/温度/主题/补丁）
+│   ├── integrate-temperature.py # 温度 RPC 集成
+│   └── kconfig.pl               # 配置合并工具
+├── target/                      # 内核源码与 DTS
+├── package/                     # 软件包
+└── README.md
+```
 
 ---
 
@@ -473,23 +343,33 @@ make -j$(nproc) || make -j1 || make -j1 V=s
 1. 本项目为开源固件项目，旨在用于技术交流与网络设备功能研究。
 2. 刷写第三方固件具有一定风险，操作前请务必使用 `backup-fiberhome-pon.sh` 备份好克隆的烽火 PON 认证数据（LOID、SN、Vendor ID）与宽带认证信息。
 3. 请严格遵守当地电信运营商的相关管理规定，严禁用于任何非法网络活动。
+4. 本项目基于 `wuziwei/ponwrt-ZN504-HG5585F` 二次定制，**上游功能的可用性与稳定性由上游保证**；本项目仅对四项定制负责。
 
 ---
 
 ## 🙏 七、引用致谢 (Acknowledgements & Credits)
 
-本项目凝聚了开源社区众多前驱开发者与项目的智慧结晶，特此对以下项目及贡献者表达诚挚感谢与崇高敬意：
-
+- **[wuziwei/ponwrt-ZN504-HG5585F](https://github.com/wuziwei/ponwrt-ZN504-HG5585F)**：**本项目直接上游**，提供完整源码树、硬件级优化、构建流水线与固件配置。本项目仅在其基础上追加四项个人定制。
 - **[pbs05/ponwrt](https://github.com/pbs05/ponwrt)**：PonWrt 创始人，奠定达发 Airoha AN7581 / AN7583 PON 光猫开源架构与驱动的坚实底座，本项目核心源码基石。
 - **[1018ji/build-ponwrt-daily](https://github.com/1018ji/build-ponwrt-daily)**：现代化 CI 构建流水线开创者，提供基于编译器版本指纹的 Ccache 高速缓存持久化（`CCACHE_COMPILERCHECK`）、5GB 增量缓存复用与镜像源动态测速回退的架构灵感。
-- **[LeoooChen/PonWRT-TYFZA1](https://github.com/LeoooChen/PonWRT-TYFZA1)**：硬件流量转发与 16MB 环形缓冲区调优先驱，贡献 XG-PON 线路与 PPPoE 线速流量硬件卸载（4.5% 超低 CPU 占用）实践及 `rpcd` 异步无线扫描防卡死机制。
+- **[LeoooChen/PonWRT-TYFZA1](https://github.com/LeoooChen/PonWRT-TYFZA1)**：硬件流量转发与 16MB 环形缓冲区调优先驱，贡献 XG-PON 线路与 PPPoE 线速流量硬件卸载实践及 `rpcd` 异步无线扫描防卡死机制。
 - **[Kahen/PonWrt-CI-UBI](https://github.com/Kahen/PonWrt-CI-UBI)**：提供 AN7581 SoC 精确温度遥测方案 (`temperature-rpc.uc` 与 LuCI RPC 联动) 及 MTD 读写保护 (`kmod-mtd-rw`)。
 - **[ImmortalWrt](https://github.com/immortalwrt/immortalwrt) & QWRT 项目团队**：为 Linux 网络内核调优、EIP-93 硬件协处理器剔除性能倒挂实践、PPE 硬件流表加速与网络调优提供深度参考与优秀范例。
 - **[NNdroid](https://github.com/NNdroid)**：提供 EN7572 激光冷启动防抖确认补丁、LOID 填充方向调节及 CTC 原始报文分析回显工具链。
 - **[OpenWrt Project](https://github.com/openwrt/openwrt)**：为全球网络设备提供坚实、可扩展的嵌入式 Linux 操作系统底座。
-- **[stackia/rtp2httpd](https://github.com/stackia/rtp2httpd)**：高性能零拷贝 4K/8K IPTV 组播转单播、FCC 快速切台与 RTSP 代理引擎，附带现代 Web 播放器与状态监控面板。
+- **[stackia/rtp2httpd](https://github.com/stackia/rtp2httpd)**：高性能零拷贝 4K/8K IPTV 组播转单播、FCC 快速切台与 RTSP 代理引擎。
 - **[SagerNet/sing-box](https://github.com/SagerNet/sing-box)**：新一代高性能网络代理核心。
 - **[daeuniverse/honk](https://github.com/daeuniverse/honk)** 与 **[daeuniverse/openwrt-packages](https://github.com/daeuniverse/openwrt-packages)**：高性能 Linux eBPF 零拷贝透明代理引擎与 LuCI Web 控制面板。
 - **[rchen14b/luci-app-airoha-npu](https://github.com/rchen14b/luci-app-airoha-npu)**：达发 AN7581 独立 8 核 RISC-V NPU / PPE 运行状态与硬件流表监控看板。
 - **[VizzleTF/luci-theme-footstrap](https://github.com/VizzleTF/luci-theme-footstrap)**：专为 PonWrt 适配的清爽现代响应式主题。
+- **[anothaDev/luci-theme-vantage](https://github.com/anothaDev/luci-theme-vantage)**：Vantage 主题本体与实况面板。
 - **[oenhu](https://github.com/oenhu)**：贡献 PR #116 优化，避免 DHCP 网络冗余生成 `wan6` 接口引起的路由竞争。
+
+---
+
+## 🔗 相关链接
+
+- [本项目 Releases](https://github.com/chkdsk228/ponwrt-ZN504-HG5585F/releases)
+- [直接上游：wuziwei/ponwrt-ZN504-HG5585F](https://github.com/wuziwei/ponwrt-ZN504-HG5585F)
+- [源码基石：pbs05/ponwrt](https://github.com/pbs05/ponwrt)
+- [ImmortalWrt 官方文档](https://immortalwrt.org/)

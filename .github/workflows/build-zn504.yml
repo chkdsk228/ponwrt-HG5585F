@@ -135,12 +135,34 @@ jobs:
           mkdir -p output
           find bin/targets/airoha/an7581/ -type f \( -name "*zn504*" -o -name "*hg5585f-ct*" -o -name "*hg5585f-cu*" \) ! -name "*usb-sfp*" \( -name "*sysupgrade.itb" -o -name "*recovery.itb" -o -name "*manifest" \) -exec cp {} output/ \;
           cd output
+          # chkdsk228 定制：固件重命名为编译时间戳格式
+          #   immortalwrt-<机型>-squashfs-enhanced-<YY.MM.DD>-<HH.MM.SS>.itb
+          # 原始名形如 ponwrt-airoha-an7581-fiberhome_hg5585f-ct-squashfs-sysupgrade.itb
+          STAMP="$(TZ=Asia/Shanghai date +'%y.%m.%d-%H.%M.%S')"
+          for f in *.itb; do
+            [ -f "$f" ] || continue
+            case "$f" in
+              *-initramfs-recovery.itb) KIND="initramfs"; DEV="${f%-initramfs-recovery.itb}" ;;
+              *-squashfs-sysupgrade.itb) KIND="squashfs-enhanced"; DEV="${f%-squashfs-sysupgrade.itb}" ;;
+              *) continue ;;
+            esac
+            # 从设备全名中提取机型段（fiberhome_hg5585f-ct -> hg5585f-ct）
+            MODEL="${DEV##*-an7581-}"
+            MODEL="${MODEL#fiberhome_}"
+            MODEL="${MODEL#nokia_}"
+            MODEL="${MODEL#znxt_}"
+            MODEL="${MODEL#gemtek_}"
+            MODEL="${MODEL#unionman_}"
+            NEW="immortalwrt-${MODEL}-${KIND}-${STAMP}.itb"
+            mv -v "$f" "$NEW"
+          done
           for file in $(ls * 2>/dev/null); do
             [ -f "$file" ] && sha256sum "$file" > "${file}.sha256"
           done
           echo "=== Generated Firmware Artifacts ==="
           ls -lh
           echo "FIRMWARE_DIR=$PWD" >> $GITHUB_ENV
+          echo "FW_STAMP=$STAMP" >> $GITHUB_ENV
 
       - name: Upload Firmware Artifacts
         uses: actions/upload-artifact@v4
@@ -153,7 +175,8 @@ jobs:
         id: tag
         if: github.event.inputs.upload_release != 'false'
         run: |
-          echo "release_tag=v$(date +'%Y.%m.%d-%H%M')" >> $GITHUB_OUTPUT
+          # chkdsk228 定制：tag 与固件命名统一用北京时间编译时间戳
+          echo "release_tag=v${FW_STAMP}" >> $GITHUB_OUTPUT
 
       - name: Upload firmware to GitHub Release
         uses: softprops/action-gh-release@v2
