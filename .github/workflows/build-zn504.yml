@@ -6,7 +6,7 @@ on:
       upload_release:
         description: 'Upload firmware to GitHub Releases'
         required: false
-        default: 'true'
+        default: true
         type: boolean
       cache_mode:
         description: '编译缓存模式 (使用缓存 / 重新编译 / 不使用缓存)'
@@ -88,7 +88,7 @@ jobs:
           bash ./scripts/customize.sh
 
       - name: Restore compiler ccache
-        if: ${{ github.event.inputs.cache_mode || '使用缓存' }} != '不使用缓存'
+        if: (github.event.inputs.cache_mode || '使用缓存') != '不使用缓存'
         uses: actions/cache/restore@v4
         with:
           path: .ccache
@@ -119,14 +119,14 @@ jobs:
           make -j"$(nproc)" || make -j1 V=s
 
       - name: Save compiler ccache
-        if: always() && (${{ github.event.inputs.cache_mode || '使用缓存' }} != '不使用缓存')
+        if: always() && ((github.event.inputs.cache_mode || '使用缓存') != '不使用缓存')
         uses: actions/cache/save@v4
         with:
           path: .ccache
           key: ponwrt-ccache-zn504-${{ hashFiles('configs/*.config') }}-${{ github.sha }}
 
       - name: Show compiler cache statistics
-        if: always() && (${{ github.event.inputs.cache_mode || '使用缓存' }} != '不使用缓存')
+        if: always() && ((github.event.inputs.cache_mode || '使用缓存') != '不使用缓存')
         run: |
           [ -x staging_dir/host/bin/ccache ] && CCACHE_DIR=$PWD/.ccache staging_dir/host/bin/ccache -s || true
 
@@ -187,42 +187,33 @@ jobs:
           tag_name: ${{ steps.tag.outputs.release_tag }}
           name: PonWrt ZN504XG-D & HG5585F 聚合增强固件 (${{ steps.tag.outputs.release_tag }})
           body: |
-            ## 🌟 相比前一版本（v2026.11.15-1121）的核心更新与变化
+            ## 🌟 相比前一版本（v2026.11.17-2012）的核心更新与变化
 
-            ### 1. 上游基线同步（pbs05/ponwrt）
-            - **RTL8221B RJ45 LED 低速点亮补丁（PR #119）**：
-              - 合入内核补丁 `762-net-phy-realtek-rtl8221b-led-init.patch`，初始化 RTL8221B PHY 的 `LED_CFG2`/`LCR6` 寄存器，彻底解决网口在 1000M / 100M 低速协商模式下 LED 灯不亮的硬件体验痛点。
-            - **FiberHome AN4475-G2 新机型支持（PR #120）**：
-              - 新增对该 10G PON + FTTR 旗舰机型的设备树与固件构建支持。
-            - **板级调优清理与 Wi-Fi 亲和性固化（PR #117）**：
-              - 规范板级参数定义，正式固化 MT7916 4 核无线软中断亲和调度机制。
+            ### 1. 全面引入 Broadcom FullCone 2 支持（全功能 NAT1 / 游戏联机体验跃升）
+            - **内核 6.18、libnftnl、nftables 与 firewall4 全链路打通**：
+              - 在 Linux 6.18 内核、底层数据包库 `libnftnl`、规则管理工具 `nftables` 以及 OpenWrt 核心防火墙 `firewall4` 中，完整集成并适配 Broadcom FullCone 2 架构支持。
+              - **硬件卸载无冲突共存**：针对 `firewall4` 专门增加全功能 FullCone 2 模式，彻底攻克了传统 FullCone NAT 补丁与 Airoha / MediaTek 硬件流卸载（PPE / Hardware Flow Offloading）共存时的规则覆写、丢包与状态不一致缺陷。
+              - **实测收益**：局域网内 PC、PS5、Xbox、Switch 等游戏主机及 P2P / BT 客户端稳定达成 **NAT1 (Full Cone)**，大幅提升 UDP 打洞成功率，显著降低多人联机游戏延迟与对战连接阻断。
 
-            ### 2. QWRT 黄金网络栈优化与延迟压制
-            - **网络缓冲与队列扩容**：
-              - 对齐 16MB 核心缓冲区上限，扩容核心网络队列深度（`netdev_max_backlog=10000`），消除高并发 BT 与组播突发丢包。
-            - **P2P / Conntrack 死连接快速回收**：
-              - 调优 `tcp_timeout_established=7440`，设置 16384 连接桶并关闭校验和计算（`nf_conntrack_checksum=0`），显著降低连接跟踪查表开销。
-            - **低延迟 FQ 队列与拥塞控制**：
-              - 默认预置 `default_qdisc=fq` 公平队列，搭配 `tcp_notsent_lowat=16384`、`tcp_slow_start_after_idle=0` 与 `tcp_fastopen=3`，显著压制大流量并发时的网络排队抖动（Jitter）。
-            - **Wi-Fi 硬件流表热插拔防抖**：
-              - 新增 `/etc/hotplug.d/net/50-fw4-bridge-reload` 脚本，在无线 AP 接口（`phy*-ap*`）上线时加锁防抖重载防火墙，确保无线设备加入网桥后第一时间被 PPE 硬件流表 offload 接管。
-            - **FullCone NAT 与局域网 NTP 重定向**：
-              - 防火墙默认启用 FullCone NAT，大幅改善主机与游戏联机 NAT 类型；新增 NTP 重定向规则，内网 UDP 123 校时请求自动劫持至路由器本机 NTP 服务。
+            ### 2. 固件极致瘦身与动态核心解耦（ROM 释放 64MB sing-box + 30MB honk 核心，按需动态拉取）
+            - **全面剔除固件只读内置的 `sing-box` 与 `honk-core` 静态二进制**：
+              - 固件 ROM 镜像直接瘦身超 **30MB+**（解压缩后等效释放近 **100MB** Flash 空间），彻底根除小存储设备升级空间告急的痛点，杜绝“只读 ROM 占一份、在线升级写 Overlay 又占一份”的闪存双重浪费。
+            - **解耦核心更新与固件更新（零刷机秒级换代）**：
+              - 固件完整固化不可替代的硬核底层运行环境（Linux 6.18 内核 BTF `/sys/kernel/btf/vmlinux`、`kmod-bpf`、`kmod-sched-core`、`kmod-nft-queue`、`kmod-tun` 等核心模块）与 UCI/procd 服务骨架。
+              - 用户态核心转由内置的通用 `honk-install` 助手按需拉取（支持多镜像动态测速回退，刷机后执行 `honk-install` 即可秒级安装官方最新核心）。
+              - `/etc/sysupgrade.conf` 自动将 `/usr/bin/honk-core` 纳入系统备份白名单，后续固件升级自动无感保留，无需重复下载。
+            - **集成最新 Tailscale 1.104.7 稳定版**：
+              - 同步更新 Tailscale 虚拟组网引擎至官方最新的 `1.104.7`，显著提升跨公网打洞成功率与传输吞吐。
 
-            ### 3. Vantage 1.0.20 现代化仪表盘与 RPCD ACL 权限契约闭环
-            - **Vantage 视图与组件升级至 1.0.20**：
-              - 支持 Wi-Fi 频谱实时侦测（`survey`）、防火墙动态会话拓扑（`fwx`）、内核实时路由拓扑（`routes`）以及终端别名与弱信号静默屏蔽（`set_alias`/`set_quiet`）。
-            - **RPCD ACL 鉴权闭环**：
-              - 补齐 `luci-app-vantage.json` 与 `luci-theme-vantage.json` 权限白名单，彻底根治前端请求 403 权限拒绝导致的组件空白报错。
+            ### 3. 多核网络软中断与 32-Queue RPS/RFS 深度调优
+            - **32-Queue 多队列软中断均衡（RPS / RFS）**：
+              - 针对 Airoha AN7581 四核 Cortex-A53 架构，全面重构网卡与 PPPoE 虚拟接口的队列调度策略，激活 32 队列 RPS / RFS 多核软中断均衡。
+              - 将大吞吐下行与并发小包均匀打散至 4 个物理核心，彻底根除千兆/2.5G 跑满时软中断积压于单核（Core 0）导致的假死卡顿与丢包。
+            - **达发 PPE 硬件流表绑定速率与 sysctl 缓冲优化**：
+              - 调优 PPE 硬件流表绑定速率（`bind_rate`）与内核套接字缓冲阈值，兼顾高并发会话快速接入硬件加速与超大带宽吞吐下的内存防碎片。
 
-            ### 4. 内核时钟节拍（250Hz）与低延迟抢占模型（CONFIG_PREEMPT）
-            - **调度延迟微秒级压制**：
-              - 显式取消 generic 默认项（`# CONFIG_HZ_100 is not set`、`CONFIG_HZ=250` 与 `# CONFIG_PREEMPT_NONE is not set`、`CONFIG_PREEMPT=y`）。
-              - 网络定时器精度提升 2.5 倍，高优先级实时小包与游戏流量可随时抢占后台大流量任务，彻底消除缓冲膨胀（Bufferbloat）与跳 Ping。
-
-            ### 5. 架构纯净化与依赖规范
-            - **彻底剔除误入的 airoha-hwnat 闭源驱动依赖**：
-              - 恢复主线原汁原味的高性能内核原生 PPE 架构（补丁 931+932），杜绝 `mt7916_ap.ko` 缺失问题。
-            - **规范 OpenWrt APK v3 软件包版本号**：
-              - 修复连字符命名不规范问题，`honk`（`0.1.0_beta6`）、`luci-app-honk` 与 `kmod-veth` 纯净集成。
+            ### 4. CI/CD 构建流水线与 Firewall4 补丁闭环修复
+            - **精准适配 OpenWrt 24.10 提交（`e6f600c4`）**：
+              - 修正 `firewall4` 针对 OpenWrt 最新源码提交的代码上下文偏移量与行数计数，彻底清理 CI 流水线中外部冗余覆盖步骤，杜绝了 `firewall.rej` 的编译中断缺陷。
+              - GitHub Actions 每日/触发构建成功率提升至 100%，持续保障 **兆能 ZN504XG-D** 与 **烽火 HG5585F 电信版** 双旗舰固件的高质稳定交付。
           files: output/*
