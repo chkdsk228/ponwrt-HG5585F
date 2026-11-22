@@ -9,6 +9,7 @@
 #   4. 固件命名用编译时间戳（在 .github/workflows/build-zn504.yml 中实现）
 #
 # 上游基线: wuziwei/ponwrt-ZN504-HG5585F @ 2a9ccb19 (2026-11-22)
+# 仓库: 独立仓库 chkdsk228/ponwrt-HG5585F（非 fork，Actions 无门槛）
 # 命名前缀 98- 保证在 99-custom-settings 之前执行，
 # 让上游的 99-custom-settings 能覆盖本文件的任何冲突项。
 # ============================================================
